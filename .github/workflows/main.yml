@@ -15,10 +15,15 @@ jobs:
         with:
           python-version: '3.11'
 
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
       - name: Install system packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config \
+          sudo apt-get install -y git zip unzip autoconf libtool pkg-config \
             zlib1g-dev libncurses-dev cmake libffi-dev libssl-dev build-essential ccache
 
       - name: Install Buildozer
@@ -27,9 +32,25 @@ jobs:
           pip install buildozer cython==0.29.36
 
       - name: Build APK
-        run: buildozer -v android debug
+        run: |
+          set -o pipefail
+          buildozer -v android debug 2>&1 | tee build.log
+
+      - name: Show errors (look here if build failed)
+        if: failure()
+        run: |
+          echo "=== 90 СТРОК ПЕРЕД '# Command failed' ==="
+          grep -n -B90 -m1 "# Command failed" build.log | head -120 || true
+
+      - name: Upload log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: chess-apk
