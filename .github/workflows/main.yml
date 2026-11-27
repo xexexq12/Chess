@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -23,7 +23,7 @@ jobs:
       - name: Install system packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip autoconf libtool pkg-config \
+          sudo apt-get install -y git zip unzip autoconf automake libtool libltdl-dev pkg-config \
             zlib1g-dev libncurses-dev cmake libffi-dev libssl-dev build-essential ccache
 
       - name: Install Buildozer
@@ -39,8 +39,12 @@ jobs:
       - name: Show errors (look here if build failed)
         if: failure()
         run: |
-          echo "=== 90 СТРОК ПЕРЕД '# Command failed' ==="
-          grep -n -B90 -m1 "# Command failed" build.log | head -120 || true
+          sed 's/\x1b\[[0-9;]*m//g' build.log > clean.log
+          N=$(grep -n -m1 "# Command failed" clean.log | cut -d: -f1)
+          S=$((N-70)); if [ "$S" -lt 1 ]; then S=1; fi
+          sed -n "${S},$((N-1))p" clean.log | cut -c1-180 > tail.txt
+          { echo '### Последние строки перед ошибкой'; echo '```'; cat tail.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          cat tail.txt
 
       - name: Upload log
         if: always()
