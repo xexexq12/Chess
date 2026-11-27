@@ -34,6 +34,22 @@ jobs:
       - name: Build APK
         run: |
           set -o pipefail
+          # Заплатка: в Python 3.11+ заголовок longintrepr.h переехал в cpython/, а pygame
+          # подключает его по старому пути. Фоновый цикл создаёт переходник, пока идёт сборка.
+          (
+            while true; do
+              find .buildozer -type d -name cpython 2>/dev/null | while read -r d; do
+                p=$(dirname "$d")
+                if [ -f "$d/longintrepr.h" ] && [ ! -f "$p/longintrepr.h" ]; then
+                  printf '#include "cpython/longintrepr.h"\n' > "$p/longintrepr.h"
+                  echo "shim created: $p/longintrepr.h" >> shim.log
+                fi
+              done
+              sleep 4
+            done
+          ) &
+          WATCH=$!
+          trap 'kill $WATCH 2>/dev/null || true' EXIT
           buildozer -v android debug 2>&1 | tee build.log
 
       - name: Show errors (look here if build failed)
