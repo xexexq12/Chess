@@ -37,8 +37,9 @@ jobs:
           # Заплатка: в Python 3.11+ заголовок longintrepr.h переехал в cpython/, а pygame
           # подключает его по старому пути. Фоновый цикл создаёт переходник, пока идёт сборка.
           (
+            set +e +o pipefail
             while true; do
-              find .buildozer -type d -name cpython 2>/dev/null | while read -r d; do
+              [ -d .buildozer ] && find .buildozer -type d -name cpython 2>/dev/null | while read -r d; do
                 p=$(dirname "$d")
                 if [ -f "$d/longintrepr.h" ] && [ ! -f "$p/longintrepr.h" ]; then
                   printf '#include "cpython/longintrepr.h"\n' > "$p/longintrepr.h"
@@ -61,6 +62,9 @@ jobs:
           sed -n "${S},$((N-1))p" clean.log | cut -c1-180 > tail.txt
           { echo '### Последние строки перед ошибкой'; echo '```'; cat tail.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           cat tail.txt
+          echo "=== ЗАПЛАТКА longintrepr.h ==="
+          { echo '### Заплатка longintrepr.h'; echo '```'; cat shim.log 2>/dev/null || echo 'не срабатывала'; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          cat shim.log 2>/dev/null || echo 'заплатка не срабатывала'
 
       - name: Upload log
         if: always()
