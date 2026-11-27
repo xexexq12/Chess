@@ -5,7 +5,7 @@ package.domain = org.chesspower
 source.dir = .
 source.include_exts = py
 version = 1.0
-requirements = python3,pygame
+requirements = python3==3.10.10,hostpython3==3.10.10,pygame
 orientation = all
 fullscreen = 1
 android.api = 33
